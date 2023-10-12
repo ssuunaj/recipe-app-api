@@ -1,5 +1,6 @@
 """Database models."""
 
+from django.conf import settings
 from django.db import models # noqa
 from django.contrib.auth.models import ( AbstractBaseUser,BaseUserManager,PermissionsMixin)
 
@@ -15,8 +16,17 @@ class UserManager(BaseUserManager):
         
         user = self.model(email=self.normalize_email(email), **extra_field)
 
+        #ser the harsh password
         user.set_password(password)
-        user.save(using=self._db)
+
+        try: 
+            ##Try to save the user
+            user.save(using=self._db)
+        except IntegrityError:
+            #checking for existing user in the database
+            existing_user = self.get(email=email)
+            return existing_user
+
 
         return user
     
@@ -48,3 +58,21 @@ class User(AbstractBaseUser,PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'    
+
+class Recipe(models.Model):
+    """Receipe Object"""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    time_minutes = models.IntegerField()
+    price = models.DecimalField(max_digits=5, decimal_places=2)
+    link = models.CharField(max_length=255, blank=True)
+
+    def __str__(self) -> str:
+        return self.title
+
+
